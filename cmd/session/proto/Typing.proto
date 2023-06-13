@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option go_package = "github.com/dudakp/input-server/app/grpc";
+
+package typing;
+
+service Typing {
+  rpc CreateSession (CreateSessionRequest) returns (Session) {}
+  // result session stream contains updated session state
+  rpc JoinSession (JoinSessionRequest) returns (stream Session) {}
+  // result contains finite list of sessions
+  rpc ListSessions (ListSessionsRequest) returns (stream Session) {}
+}
+
+message CreateSessionRequest {
+  string name = 1;
+  string region = 2;
+}
+
+message JoinSessionRequest {
+  string session_id = 1;
+}
+
+message Session {
+  string id = 1;
+  string name = 2;
+  repeated User users = 3;
+  string region = 4;
+}
+
+message ListSessionsRequest {
+  string region = 1;
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+}
