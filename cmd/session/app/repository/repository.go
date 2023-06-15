@@ -15,7 +15,7 @@ var (
 )
 
 type SessionRepository interface {
-	InsertSession(session model.Session) (*model.Session, error)
+	UpsertSession(session model.Session) (*model.Session, error)
 	FindSession(id uuid.UUID) (*model.Session, error)
 	FindSessionByRegion(name string) ([]*model.Session, error)
 }

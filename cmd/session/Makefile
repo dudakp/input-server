@@ -1,2 +1,2 @@
 generate:
-	../../scripts/generate.sh session Typing.proto
+	../../scripts/generate.sh session session.proto

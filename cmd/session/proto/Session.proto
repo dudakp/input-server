@@ -2,9 +2,9 @@ syntax = "proto3";
 
 option go_package = "github.com/dudakp/input-server/app/grpc";
 
-package typing;
+package session;
 
-service Typing {
+service session {
   rpc CreateSession (CreateSessionRequest) returns (Session) {}
   // result session stream contains updated session state
   rpc JoinSession (JoinSessionRequest) returns (stream Session) {}

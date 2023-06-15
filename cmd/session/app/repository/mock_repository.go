@@ -16,7 +16,12 @@ func NewMockSessionRepository() *MockSessionRepository {
 	return &MockSessionRepository{}
 }
 
-func (m *MockSessionRepository) InsertSession(session model.Session) (*model.Session, error) {
+func (m *MockSessionRepository) UpsertSession(session model.Session) (*model.Session, error) {
+	s, _ := m.FindSession(session.Id)
+	if s != nil {
+		s.Users = append(s.Users, session.Users...)
+		return s, nil
+	}
 	sessions = append(sessions, &session)
 	return &session, nil
 }
