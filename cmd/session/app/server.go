@@ -1,3 +1,5 @@
+//go:generate protoc --go_out=../grpc --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --proto_path=../proto ../proto/Session.proto
+
 package app
 
 import (
@@ -6,7 +8,8 @@ import (
 	"fmt"
 	pb "github.com/dudakp/input-server/cmd/session/app/grpc"
 	"github.com/dudakp/input-server/cmd/session/app/model"
-	"github.com/dudakp/input-server/internal/user"
+	grpcCtx "github.com/dudakp/input-server/internal/context"
+	"github.com/dudakp/input-server/internal/logging"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"log"
@@ -14,12 +17,16 @@ import (
 	"time"
 )
 
+var (
+	logger = logging.GetLoggerFor("session", false)
+)
+
 type typingServer struct {
 	pb.UnimplementedSessionServer
 }
 
 func (r *typingServer) CreateSession(ctx context.Context, req *pb.CreateSessionRequest) (*pb.Session, error) {
-	u, _ := user.GetUserFromContext(ctx)
+	u, _ := grpcCtx.GetUserFromContext(ctx)
 	session, err := CreateSession(req.Name, req.Region, u)
 	if err != nil {
 		return nil, err
@@ -39,7 +46,7 @@ func (r *typingServer) JoinSession(req *pb.JoinSessionRequest, stream pb.Session
 		return err
 	}
 
-	u, _ := user.GetUserFromContext(stream.Context())
+	u, _ := grpcCtx.GetUserFromContext(stream.Context())
 	session, err := JoinSession(id, u)
 	if err != nil {
 		return err
@@ -89,16 +96,17 @@ func (r *typingServer) convertUsers(session *model.Session) []*pb.User {
 	return users
 }
 
-// TODO: create common grpc server bootstraping function and move it to interanl package
-func StartTypingServer() {
+// TODO(maybe): create common context server bootstraping function and move it to interanl package
+func StartTypingServer(grpcPort int) {
 	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 50051))
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", grpcPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterSessionServer(grpcServer, &typingServer{})
+	logger.Info().Msgf("started grpc server on port: %d", grpcPort)
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		log.Fatalf("failed to serve: %w", err)

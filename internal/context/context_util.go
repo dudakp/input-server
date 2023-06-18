@@ -1,4 +1,4 @@
-package user
+package context
 
 import (
 	"context"
@@ -10,7 +10,7 @@ func GetUserFromContext(ctx context.Context) (string, error) {
 	incomingContext, _ := metadata.FromIncomingContext(ctx)
 	user := incomingContext.Get("username")
 	if user == nil {
-		return "", errors.New("user not found in context")
+		return "", errors.New("context not found in context")
 	}
 	return user[0], nil
 }
