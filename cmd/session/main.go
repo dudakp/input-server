@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dudakp/input-server/cmd/session/app"
+	"github.com/dudakp/input-server/cmd/session/app/server"
 	"github.com/dudakp/input-server/internal/config"
 )
 
@@ -25,5 +25,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	app.StartTypingServer(conf.GrpcPort)
+	server.StartTypingServer(conf.GrpcPort)
 }

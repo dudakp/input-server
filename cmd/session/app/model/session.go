@@ -12,3 +12,5 @@ type Session struct {
 	Region string
 	Users  []string
 }
+
+// TODO: add request models

@@ -3,7 +3,7 @@
 apppath=$(realpath ../../cmd/"$1")
 protopath=$apppath/proto
 protofile=$(realpath "$apppath"/proto/"$2")
-grpcout="$apppath"/app/grpc
+grpcout="$apppath"/app/server
 
 echo "generating grpc code to $grpcout from proto definition: $protofile"
 

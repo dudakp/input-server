@@ -75,3 +75,7 @@ func ExtractConfigValues(config interface{}) ([]DefaultValue, error) {
 	}
 	return res, nil
 }
+
+func IsDevelopment() bool {
+	return viper.GetBool("development")
+}
