@@ -4,7 +4,7 @@
 // - protoc             v3.6.1
 // source: session.proto
 
-package server
+package infrastructure
 
 import (
 	context "context"
@@ -23,9 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SessionClient interface {
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*Session, error)
-	// result session stream contains updated session state
 	JoinSession(ctx context.Context, opts ...grpc.CallOption) (Session_JoinSessionClient, error)
-	// result contains finite list of sessions
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (Session_ListSessionsClient, error)
 }
 
@@ -57,7 +55,7 @@ func (c *sessionClient) JoinSession(ctx context.Context, opts ...grpc.CallOption
 
 type Session_JoinSessionClient interface {
 	Send(*JoinSessionRequest) error
-	Recv() (*Session, error)
+	CloseAndRecv() (*Session, error)
 	grpc.ClientStream
 }
 
@@ -69,7 +67,10 @@ func (x *sessionJoinSessionClient) Send(m *JoinSessionRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *sessionJoinSessionClient) Recv() (*Session, error) {
+func (x *sessionJoinSessionClient) CloseAndRecv() (*Session, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	m := new(Session)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -114,9 +115,7 @@ func (x *sessionListSessionsClient) Recv() (*Session, error) {
 // for forward compatibility
 type SessionServer interface {
 	CreateSession(context.Context, *CreateSessionRequest) (*Session, error)
-	// result session stream contains updated session state
 	JoinSession(Session_JoinSessionServer) error
-	// result contains finite list of sessions
 	ListSessions(*ListSessionsRequest, Session_ListSessionsServer) error
 	mustEmbedUnimplementedSessionServer()
 }
@@ -170,7 +169,7 @@ func _Session_JoinSession_Handler(srv interface{}, stream grpc.ServerStream) err
 }
 
 type Session_JoinSessionServer interface {
-	Send(*Session) error
+	SendAndClose(*Session) error
 	Recv() (*JoinSessionRequest, error)
 	grpc.ServerStream
 }
@@ -179,7 +178,7 @@ type sessionJoinSessionServer struct {
 	grpc.ServerStream
 }
 
-func (x *sessionJoinSessionServer) Send(m *Session) error {
+func (x *sessionJoinSessionServer) SendAndClose(m *Session) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -228,12 +227,161 @@ var Session_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "JoinSession",
 			Handler:       _Session_JoinSession_Handler,
-			ServerStreams: true,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "ListSessions",
 			Handler:       _Session_ListSessions_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "session.proto",
+}
+
+// LevelClient is the client API for Level service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type LevelClient interface {
+	UploadLevel(ctx context.Context, in *CreateLevelRequest, opts ...grpc.CallOption) (*Level, error)
+	ListLevels(ctx context.Context, in *ListLevelsRequest, opts ...grpc.CallOption) (Level_ListLevelsClient, error)
+}
+
+type levelClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewLevelClient(cc grpc.ClientConnInterface) LevelClient {
+	return &levelClient{cc}
+}
+
+func (c *levelClient) UploadLevel(ctx context.Context, in *CreateLevelRequest, opts ...grpc.CallOption) (*Level, error) {
+	out := new(Level)
+	err := c.cc.Invoke(ctx, "/session.level/UploadLevel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *levelClient) ListLevels(ctx context.Context, in *ListLevelsRequest, opts ...grpc.CallOption) (Level_ListLevelsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Level_ServiceDesc.Streams[0], "/session.level/ListLevels", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &levelListLevelsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Level_ListLevelsClient interface {
+	Recv() (*Level, error)
+	grpc.ClientStream
+}
+
+type levelListLevelsClient struct {
+	grpc.ClientStream
+}
+
+func (x *levelListLevelsClient) Recv() (*Level, error) {
+	m := new(Level)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// LevelServer is the server API for Level service.
+// All implementations must embed UnimplementedLevelServer
+// for forward compatibility
+type LevelServer interface {
+	UploadLevel(context.Context, *CreateLevelRequest) (*Level, error)
+	ListLevels(*ListLevelsRequest, Level_ListLevelsServer) error
+	mustEmbedUnimplementedLevelServer()
+}
+
+// UnimplementedLevelServer must be embedded to have forward compatible implementations.
+type UnimplementedLevelServer struct {
+}
+
+func (UnimplementedLevelServer) UploadLevel(context.Context, *CreateLevelRequest) (*Level, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadLevel not implemented")
+}
+func (UnimplementedLevelServer) ListLevels(*ListLevelsRequest, Level_ListLevelsServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListLevels not implemented")
+}
+func (UnimplementedLevelServer) mustEmbedUnimplementedLevelServer() {}
+
+// UnsafeLevelServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to LevelServer will
+// result in compilation errors.
+type UnsafeLevelServer interface {
+	mustEmbedUnimplementedLevelServer()
+}
+
+func RegisterLevelServer(s grpc.ServiceRegistrar, srv LevelServer) {
+	s.RegisterService(&Level_ServiceDesc, srv)
+}
+
+func _Level_UploadLevel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateLevelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LevelServer).UploadLevel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/session.level/UploadLevel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LevelServer).UploadLevel(ctx, req.(*CreateLevelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Level_ListLevels_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListLevelsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(LevelServer).ListLevels(m, &levelListLevelsServer{stream})
+}
+
+type Level_ListLevelsServer interface {
+	Send(*Level) error
+	grpc.ServerStream
+}
+
+type levelListLevelsServer struct {
+	grpc.ServerStream
+}
+
+func (x *levelListLevelsServer) Send(m *Level) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// Level_ServiceDesc is the grpc.ServiceDesc for Level service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Level_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "session.level",
+	HandlerType: (*LevelServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UploadLevel",
+			Handler:    _Level_UploadLevel_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListLevels",
+			Handler:       _Level_ListLevels_Handler,
 			ServerStreams: true,
 		},
 	},

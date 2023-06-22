@@ -1,10 +1,5 @@
 package validation
 
-type Validator interface {
-	Validate() error
-}
-
-type RequestValidator interface {
-	Validator
-	ToResponse() error
+type Validator[T any] interface {
+	Validate(T) error
 }

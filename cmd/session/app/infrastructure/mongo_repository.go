@@ -1,4 +1,4 @@
-package repository
+package infrastructure
 
 type MongoSessionRepository struct {
 }

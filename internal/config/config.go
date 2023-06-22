@@ -8,7 +8,9 @@ import (
 	"errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"os"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -77,5 +79,9 @@ func ExtractConfigValues(config interface{}) ([]DefaultValue, error) {
 }
 
 func IsDevelopment() bool {
-	return viper.GetBool("development")
+	de := os.Getenv("development")
+	if strings.Compare(strings.ToLower(de), "true") == 0 {
+		return true
+	}
+	return false
 }

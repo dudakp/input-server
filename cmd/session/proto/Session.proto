@@ -1,20 +1,22 @@
 syntax = "proto3";
 
-option go_package = "github.com/dudakp/input-server/cmd/session/app/server";
+import "google/protobuf/timestamp.proto";
+
+
+option go_package = "github.com/dudakp/input-server/cmd/session/app/infrastructure";
 
 package session;
 
 service session {
   rpc CreateSession (CreateSessionRequest) returns (Session) {}
-  // result session stream contains updated session state
-  rpc JoinSession (stream JoinSessionRequest) returns (stream Session) {}
-  // result contains finite list of sessions
+  rpc JoinSession (stream JoinSessionRequest) returns (Session) {}
   rpc ListSessions (ListSessionsRequest) returns (stream Session) {}
 }
 
 message CreateSessionRequest {
   string name = 1;
   string region = 2;
+  string level_id = 3;
 }
 
 message JoinSessionRequest {
@@ -29,22 +31,41 @@ message JoinEvent {
 }
 
 message PingEvent {
+  LevelState level_state = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message LevelState {
   string session_id = 1;
-  string user_id = 2;
+  int32 progress = 2;
 }
 
 message Session {
   string id = 1;
   string name = 2;
-  repeated User users = 3;
-  string region = 4;
+  Level level = 3;
+  int32 numPlayers = 4;
 }
 
 message ListSessionsRequest {
   string region = 1;
 }
 
-message User {
+service level {
+  rpc UploadLevel (CreateLevelRequest) returns (Level) {}
+  rpc ListLevels (ListLevelsRequest) returns (stream Level) {}
+}
+
+message CreateLevelRequest {
+  string name = 1;
+  bytes data = 2;
+}
+
+message Level {
   string id = 1;
   string name = 2;
+  int32 difficulty = 3;
+}
+
+message ListLevelsRequest {
 }
