@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/dudakp/input-server/internal/proto";
+
+message LevelProjection {
+  string id = 1;
+  string name = 2;
+  int32 difficulty = 3;
+}

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "CommonModels.proto";
+
+
+option go_package = "github.com/dudakp/input-server/cmd/level/app/infrastructure";
+
+package level;
+
+service level {
+  rpc UploadLevel (CreateLevelRequest) returns (common.LevelProjection) {}
+  rpc ListLevels (ListLevelsRequest) returns (stream common.LevelProjection) {}
+}
+
+message CreateLevelRequest {
+  string name = 1;
+  bytes data = 2;
+}
+
+message ListLevelsRequest {
+}

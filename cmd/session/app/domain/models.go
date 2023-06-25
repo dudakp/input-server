@@ -1,6 +1,7 @@
-package domain
+package session
 
 import (
+	"github.com/dudakp/input-server/cmd/level/app/domain"
 	"github.com/google/uuid"
 	"time"
 )
@@ -9,24 +10,11 @@ type Session struct {
 	Id      uuid.UUID
 	Name    string
 	Players []Player
-	Level   EmLevel
-}
-
-type EmLevel struct {
-	Id         uuid.UUID
-	Name       string
-	Difficulty int
+	Level   level.EmLevel
 }
 
 type Player struct {
 	Id         uuid.UUID
 	Name       string
 	LastUpdate time.Time
-}
-
-type Level struct {
-	Id         uuid.UUID
-	Name       string
-	Difficulty int
-	Text       string
 }

@@ -1,6 +1,7 @@
-package domain
+package session
 
 import (
+	level "github.com/dudakp/input-server/cmd/level/app/domain"
 	"github.com/dudakp/input-server/internal/config"
 	"github.com/dudakp/input-server/internal/logging"
 	"github.com/google/uuid"
@@ -13,17 +14,17 @@ var (
 )
 
 type Service struct {
-	sessionRepository SessionRepository
-	LevelRepository   LevelRepository
+	sessionRepository Repository
+	levelRepository   level.Repository
 }
 
-func NewSessionService(sessionRepository SessionRepository) *Service {
+func NewSessionService(sessionRepository Repository) *Service {
 	return &Service{sessionRepository: sessionRepository}
 }
 
 func (r *Service) CreateSession(name string, levelId uuid.UUID) (*uuid.UUID, error) {
 	logger.Info().Msgf("creating session with name %s", name)
-	level, err := r.LevelRepository.FindLevelProjectionById(levelId)
+	l, err := r.levelRepository.FindLevelProjectionById(levelId)
 	if err != nil {
 		logger.Error().Msgf("unable to find level: %v", err)
 		return nil, err
@@ -33,7 +34,7 @@ func (r *Service) CreateSession(name string, levelId uuid.UUID) (*uuid.UUID, err
 			Id:      uuid.New(),
 			Name:    name,
 			Players: []Player{},
-			Level:   *level,
+			Level:   *l,
 		})
 	if err != nil {
 		logger.Error().Msgf("unable to create session: %v", err)

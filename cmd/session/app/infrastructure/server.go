@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dudakp/input-server/cmd/session/app/domain"
+	"github.com/dudakp/input-server/cmd/session/app/infrastructure/internal"
 	"github.com/dudakp/input-server/internal/config"
 	"github.com/dudakp/input-server/internal/logging"
 	grpcCtx "github.com/dudakp/input-server/internal/rpc"
@@ -25,11 +26,11 @@ var (
 )
 
 type typingServer struct {
-	UnimplementedSessionServer
-	sessionService *domain.Service
+	infrastructure.UnimplementedSessionServer
+	sessionService *session.Service
 }
 
-func (r *typingServer) CreateSession(ctx context.Context, req *CreateSessionRequest) (*Session, error) {
+func (r *typingServer) CreateSession(ctx context.Context, req *infrastructure.CreateSessionRequest) (*infrastructure.Session, error) {
 	levelId, err := uuid.Parse(req.LevelId)
 	if err != nil {
 		logger.Error().Msgf("unable to parse levelID: %v", err)
@@ -40,12 +41,12 @@ func (r *typingServer) CreateSession(ctx context.Context, req *CreateSessionRequ
 		logger.Error().Msgf("unable to create sessionID: %v", err)
 		return nil, err
 	}
-	return &Session{
+	return &infrastructure.Session{
 		Id: sessionID.String(),
 	}, nil
 }
 
-func (r *typingServer) JoinSession(stream Session_JoinSessionServer) error {
+func (r *typingServer) JoinSession(stream infrastructure.Session_JoinSessionServer) error {
 	event, err := stream.Recv()
 	_, uId, err := grpcCtx.GetUserFromContext(stream.Context())
 	if err != nil {
@@ -56,7 +57,7 @@ func (r *typingServer) JoinSession(stream Session_JoinSessionServer) error {
 		logger.Error().Msgf("unable to parse sessionID: %v", err)
 		return status.Errorf(codes.InvalidArgument, fmt.Sprintf("unable to parse sessionID: %v", err))
 	}
-	defer func(sessionService *domain.Service, sessionId, playerId uuid.UUID) {
+	defer func(sessionService *session.Service, sessionId, playerId uuid.UUID) {
 		err := sessionService.LeaveSession(sessionId, playerId)
 		if err != nil {
 			logger.Error().Msgf("unable to leave session: %v", err)
@@ -73,7 +74,7 @@ func (r *typingServer) JoinSession(stream Session_JoinSessionServer) error {
 			return err
 		}
 
-		var session *domain.Session
+		var session *session.Session
 		if event.GetJoin() != nil {
 			session, err = r.sessionService.JoinSession(sessionId, uId)
 			if err != nil {
@@ -96,17 +97,17 @@ func (r *typingServer) JoinSession(stream Session_JoinSessionServer) error {
 	}
 }
 
-func (r *typingServer) ListSessions(req *ListSessionsRequest, stream Session_ListSessionsServer) error {
+func (r *typingServer) ListSessions(req *infrastructure.ListSessionsRequest, stream infrastructure.Session_ListSessionsServer) error {
 	sessions, err := r.sessionService.FindAllSessions()
 	if err != nil {
 		return err
 	}
 	for _, session := range sessions {
-		err = stream.Send(&Session{
+		err = stream.Send(&infrastructure.Session{
 			Id:         session.Id.String(),
 			Name:       session.Name,
 			NumPlayers: int32(len(session.Players)),
-			Level: &Level{
+			Level: &infrastructure.Level{
 				Id:         session.Level.Id.String(),
 				Name:       session.Level.Name,
 				Difficulty: int32(session.Level.Difficulty),
@@ -128,9 +129,9 @@ func StartTypingServer(grpcPort int) {
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	RegisterSessionServer(grpcServer,
+	infrastructure.RegisterSessionServer(grpcServer,
 		&typingServer{
-			sessionService: domain.NewSessionService(NewMockSessionRepository()),
+			sessionService: session.NewSessionService(infrastructure.NewMockSessionRepository()),
 		})
 	reflection.Register(grpcServer)
 	logger.Info().Msgf("started grpc server on port: %d", grpcPort)
@@ -140,11 +141,11 @@ func StartTypingServer(grpcPort int) {
 	}
 }
 
-func modelToRpcResponse(session *domain.Session) *Session {
-	return &Session{
+func modelToRpcResponse(session *session.Session) *infrastructure.Session {
+	return &infrastructure.Session{
 		Id:         session.Id.String(),
 		Name:       session.Name,
-		Level:      &Level{Id: session.Level.Id.String(), Name: session.Level.Name, Difficulty: int32(session.Level.Difficulty)},
+		Level:      &infrastructure.Level{Id: session.Level.Id.String(), Name: session.Level.Name, Difficulty: int32(session.Level.Difficulty)},
 		NumPlayers: int32(len(session.Players)),
 	}
 }

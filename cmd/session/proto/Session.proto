@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+import "CommonModels.proto";
 
 
 option go_package = "github.com/dudakp/input-server/cmd/session/app/infrastructure";
@@ -43,29 +44,10 @@ message LevelState {
 message Session {
   string id = 1;
   string name = 2;
-  Level level = 3;
+  LevelProjection level = 3;
   int32 numPlayers = 4;
 }
 
 message ListSessionsRequest {
   string region = 1;
-}
-
-service level {
-  rpc UploadLevel (CreateLevelRequest) returns (Level) {}
-  rpc ListLevels (ListLevelsRequest) returns (stream Level) {}
-}
-
-message CreateLevelRequest {
-  string name = 1;
-  bytes data = 2;
-}
-
-message Level {
-  string id = 1;
-  string name = 2;
-  int32 difficulty = 3;
-}
-
-message ListLevelsRequest {
 }

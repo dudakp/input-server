@@ -1,4 +1,4 @@
-package domain
+package session
 
 // TODO: add validations:
 //  1. session exists
@@ -24,11 +24,11 @@ type JoinValidatorData struct {
 }
 
 type JoinValidator struct {
-	sessionRepository SessionRepository
+	sessionRepository Repository
 	errors            error
 }
 
-func NewJoinValidator(sessionRepository SessionRepository) *JoinValidator {
+func NewJoinValidator(sessionRepository Repository) *JoinValidator {
 	return &JoinValidator{sessionRepository: sessionRepository}
 }
 
@@ -39,6 +39,10 @@ func (r *JoinValidator) Validate(data JoinValidatorData) (err error) {
 }
 
 func (r *JoinValidator) sessionExists(id uuid.UUID) joinValidationError {
+	_, err := r.sessionRepository.FindSession(id)
+	if err != nil {
+		return sessionNotExists
+	}
 	return nil
 }
 
