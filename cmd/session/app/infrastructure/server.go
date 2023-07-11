@@ -57,6 +57,7 @@ func (r *typingServer) JoinSession(stream infrastructure.Session_JoinSessionServ
 		logger.Error().Msgf("unable to parse sessionID: %v", err)
 		return status.Errorf(codes.InvalidArgument, fmt.Sprintf("unable to parse sessionID: %v", err))
 	}
+	// when the client disconnects, leave the session
 	defer func(sessionService *session.Service, sessionId, playerId uuid.UUID) {
 		err := sessionService.LeaveSession(sessionId, playerId)
 		if err != nil {
@@ -74,15 +75,15 @@ func (r *typingServer) JoinSession(stream infrastructure.Session_JoinSessionServ
 			return err
 		}
 
-		var session *session.Session
+		var s *session.Session
 		if event.GetJoin() != nil {
-			session, err = r.sessionService.JoinSession(sessionId, uId)
+			s, err = r.sessionService.JoinSession(sessionId, uId)
 			if err != nil {
 				logger.Error().Msgf("unable to join session: %v", err)
-				return status.Errorf(codes.InvalidArgument, fmt.Sprintf("unable to join session: %v", err))
+				return status.Errorf(codes.InvalidArgument, fmt.Sprintf("unable to join sessuib: %v", err))
 			}
 		} else if event.GetPing() != nil {
-			session, err = r.sessionService.GetUpdates(sessionId, uId)
+			s, err = r.sessionService.GetUpdates(sessionId, uId)
 			if err != nil {
 				return err
 			}
@@ -90,7 +91,7 @@ func (r *typingServer) JoinSession(stream infrastructure.Session_JoinSessionServ
 			return status.Errorf(codes.InvalidArgument, fmt.Sprintf("non-supported event type"))
 		}
 
-		err = stream.SendMsg(modelToRpcResponse(session))
+		err = stream.SendMsg(modelToRpcResponse(s))
 		if err != nil {
 			return err
 		}
